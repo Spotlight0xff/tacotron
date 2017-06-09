@@ -112,8 +112,22 @@ def normalize(inputs,
                                             scale=True, 
                                             activation_fn=activation_fn, 
                                             scope=scope)
+    elif type=="ins":
+        # Instance normalization
+        # Note: this normalization is also applied at test time
+        with tf.variable_scope(scope):
+            depth = inputs.get_shape()[-1]
+            scale = tf.get_variable("scale", [depth], initializer=tf.random_normal_initializer(1., .01, dtype=tf.float32))
+            offset = tf.get_variable("offset", [depth], initializer=tf.constant_initializer(0.))
+            mean, variance = tf.nn.moments(inputs, [1], keep_dims=True)
+            epsilon = 1e-5
+            inv = tf.rsqrt(variance + epsilon)
+            normalized = (inputs - mean) * inv
+            outputs = scale*normalized + offset
+            if activation_fn:
+                outputs = activation_fn(outputs)
     else:
-        raise ValueError("Currently we support `bn` or `ln` only.")
+        raise ValueError("type has to be one of `bn`,`ln` or `ins`.")
     
     return outputs
 
